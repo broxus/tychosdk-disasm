@@ -14,10 +14,19 @@ export type {
 } from "./env";
 
 import type { Code } from "./env";
+import { Cell } from "@ton/core";
 import { wasm, wasmLoaded } from "./env";
 
-export async function disasmStructured(code: string): Promise<Code> {
+export async function disasmStructured(code: Cell | string): Promise<Code> {
   await wasmLoaded();
-  const res = wasm.disasm_structured(code);
+
+  let boc;
+  if (code instanceof Cell) {
+    boc = code.toBoc({ idx: false }).toString("base64");
+  } else {
+    boc = code;
+  }
+
+  const res = wasm.disasm_structured(boc);
   return JSON.parse(res) as Code;
 }
