@@ -1,0 +1,11 @@
+/.jj
+/target
+/.vscode
+/.idea
+
+/**/pkg
+/**/pkg-node
+
+/node_modules
+/dist
+/src/wasm-node
