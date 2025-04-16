@@ -12,23 +12,23 @@ export type Code = {
 };
 
 export type Item =
-    | ({ type: "JumpTable" } & JumpTable)
-    | ({ type: "Code" } & CodeBlock)
-    | ({ type: "DataBlock" } & DataBlock)
-    | ({ type: "Library" } & Library);
+    | ({ id: number; type: "jumpTable" } & JumpTable)
+    | ({ id: number; type: "code" } & CodeBlock)
+    | ({ id: number; type: "dataBlock" } & DataBlock)
+    | ({ id: number; type: "library" } & Library);
 
 export type JumpTable = {
-    cell_hash: string;
-    key_bits: number;
+    cellHash: string;
+    keyBits: number;
     items: Record<string, ItemId>;
-    is_full_code: boolean;
+    isFullCode: boolean;
 };
 
 export type CodeBlock = {
-    cell_hash: string;
-    is_inline: boolean;
-    offset_bits: number;
-    offset_refs: number;
+    cellHash: string;
+    isInline: boolean;
+    offsetBits: number;
+    offsetRefs: number;
     bits: number;
     refs: number;
     opcodes: Opcode[];
@@ -38,26 +38,21 @@ export type CodeBlock = {
 export type Opcode = {
     bits: number;
     refs?: number;
-    text: string;
+    name: string;
+    args: OpcodeArg[];
     gas: number;
-    links?: Link[];
 };
 
-export type Link = {
-    to?: ItemId;
-    ty: LinkType;
-};
-
-export type LinkType =
-    | "True"
-    | "False"
-    | "Cond"
-    | "Body"
-    | "Data";
+export type OpcodeArg =
+    | { type: "int"; value: string }
+    | { type: "stack"; idx: number }
+    | { type: "reg"; idx: number }
+    | { type: "cell"; id: ItemId }
+    | { type: "slice"; id: ItemId };
 
 export type CodeBlockTail =
-    | { type: "Incomplete" }
-    | { type: "Child", id: ItemId };
+    | { type: "incomplete" }
+    | { type: "child", id: ItemId };
 
 export type DataBlock = {
     data: Data;
@@ -65,8 +60,8 @@ export type DataBlock = {
 
 export type Data = {
     type: "Slice";
-    offset_bits: number;
-    offset_refs: number;
+    offsetBits: number;
+    offsetRefs: number;
     bits: number;
     refs: number;
     boc: string;

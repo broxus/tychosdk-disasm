@@ -8,9 +8,8 @@ export type {
   ItemId,
   JumpTable,
   Library,
-  Link,
-  LinkType,
   Opcode,
+  OpcodeArg,
 } from "./env";
 
 import type { Code } from "./env";
