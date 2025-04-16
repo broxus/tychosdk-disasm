@@ -87,8 +87,6 @@ const parsed = await disasmStructured(code);
 
 ## Development
 
-### @tychosdk/disasm
-
 To install dependencies:
 
 ```bash

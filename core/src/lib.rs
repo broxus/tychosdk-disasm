@@ -59,14 +59,14 @@ export type DataBlock = {
 };
 
 export type Data = {
-    type: "Slice";
+    type: "slice";
     offsetBits: number;
     offsetRefs: number;
     bits: number;
     refs: number;
     boc: string;
 } | {
-    type: "Cell";
+    type: "cell";
     boc: string;
 };
 
