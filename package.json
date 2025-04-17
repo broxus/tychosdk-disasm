@@ -1,6 +1,6 @@
 {
   "name": "@tychosdk/disasm",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Tycho TVM disasm",
   "main": "dist/index.js",
   "browser": {
