@@ -39,7 +39,7 @@ export type Opcode = {
     bits: number;
     refs?: number;
     name: string;
-    args: OpcodeArg[];
+    args?: OpcodeArg[];
     gas: number;
 };
 
