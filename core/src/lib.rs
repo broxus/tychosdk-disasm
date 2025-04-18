@@ -14,7 +14,7 @@ export type Code = {
 export type Item =
     | ({ id: number; type: "jumpTable" } & JumpTable)
     | ({ id: number; type: "code" } & CodeBlock)
-    | ({ id: number; type: "dataBlock" } & DataBlock)
+    | ({ id: number; type: "data" } & DataBlock)
     | ({ id: number; type: "library" } & Library);
 
 export type JumpTable = {
@@ -60,18 +60,18 @@ export type DataBlock = {
 
 export type Data = {
     type: "slice";
+    cellHash: string;
     offsetBits: number;
     offsetRefs: number;
     bits: number;
     refs: number;
-    boc: string;
 } | {
     type: "cell";
-    boc: string;
+    cellHash: string;
 };
 
 export type Library = {
-    hash: string;
+    cellHash: string;
 };
 "###;
 

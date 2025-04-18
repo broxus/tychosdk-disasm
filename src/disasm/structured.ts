@@ -1,7 +1,8 @@
-import { Cell } from "@ton/core";
+import { Cell, Slice } from "@ton/core";
 import { wasm, wasmLoaded } from "../env";
 
 import type { Code as WasmCode } from "../env";
+import { makeSlice } from "../util/slice";
 
 /**
  * All code parts are referenced by a numberic ID.
@@ -19,7 +20,7 @@ export type Code = {
 export type Item =
   | ({ id: number; type: "jumpTable" } & JumpTable)
   | ({ id: number; type: "code" } & CodeBlock)
-  | ({ id: number; type: "dataBlock" } & DataBlock)
+  | ({ id: number; type: "data" } & DataBlock)
   | ({ id: number; type: "library" } & Library);
 export type ItemType = Item["type"];
 
@@ -97,20 +98,20 @@ export type Data =
 export type DataType = Data["type"];
 
 export type DataSlice = {
+  cellHash: string;
   offsetBits: number;
   offsetRefs: number;
   bits: number;
   refs: number;
-  boc: string;
 };
 
 export type DataCell = {
-  boc: string;
+  cellHash: string;
 };
 
 /// Library cell.
 export type Library = {
-  hash: string;
+  cellHash: string;
 };
 
 export async function disasmStructured(code: Cell | string): Promise<Code> {
@@ -126,6 +127,72 @@ export async function disasmStructured(code: Cell | string): Promise<Code> {
   const res = wasm.disasm_structured(boc);
   const parsed: WasmCode = JSON.parse(res);
   return parsed satisfies Code;
+}
+
+export class CodeCells {
+  private hashToCell: Map<string, Cell> = new Map();
+
+  constructor(code: Cell | string) {
+    type StackItem = {
+      refs: Cell[];
+      index: number;
+    };
+
+    if (typeof code === "string") {
+      code = Cell.fromBase64(code);
+    }
+
+    const stack: StackItem[] = [];
+
+    const addCell = (cell: Cell): boolean => {
+      const reprHash = cell.hash(3).toString("hex");
+      if (this.hashToCell.has(reprHash)) {
+        return false;
+      }
+
+      this.hashToCell.set(reprHash, cell);
+      if (cell.refs.length > 0) {
+        stack.push({ refs: cell.refs, index: 0 });
+      }
+      return true;
+    };
+
+    addCell(code);
+
+    outer: while (stack.length > 0) {
+      const item = stack[stack.length - 1];
+      while (item.index < item.refs.length) {
+        const child = item.refs[item.index++];
+        if (addCell(child)) {
+          continue outer;
+        }
+      }
+      stack.pop();
+    }
+  }
+
+  getCell(
+    hash: DataCell | DataSlice | Library | JumpTable | CodeBlock | string
+  ): Cell {
+    if (typeof hash === "object") {
+      hash = hash.cellHash;
+    }
+
+    const res = this.hashToCell.get(hash);
+    if (res == null) throw new Error("Unknown cell");
+    return res;
+  }
+
+  getSlice(slice: DataSlice | CodeBlock): Slice {
+    const cell = this.getCell(slice);
+    return makeSlice(
+      cell,
+      slice.offsetBits,
+      slice.offsetRefs,
+      slice.bits,
+      slice.refs
+    );
+  }
 }
 
 // === Expect Item ===

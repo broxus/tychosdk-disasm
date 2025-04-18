@@ -1,17 +1,18 @@
 import { Cell } from "@ton/core";
 import {
-  Item,
-  CodeBlock,
-  JumpTable,
-  Opcode,
-  ItemId,
   disasmStructured,
+  expectCellArg,
   expectContArg,
   expectIntArg,
   expectSliceArg,
-  expectCellArg,
+  CodeBlock,
+  CodeCells,
+  Item,
+  ItemId,
+  JumpTable,
+  Opcode,
+  OpcodeArg,
 } from "./structured";
-import { OpcodeArg } from "../env";
 
 export async function disasmToFift(
   code: Cell | string,
@@ -31,38 +32,6 @@ export async function disasmToFift(
   return ctx.output;
 }
 
-class CodeCells {
-  private hashToCell: Map<string, Cell> = new Map();
-
-  constructor(code: Cell | string) {
-    const stack = [];
-    if (code instanceof Cell) {
-      stack.push(code);
-    } else {
-      stack.push(Cell.fromBase64(code));
-    }
-
-    while (stack.length > 0) {
-      const cell: Cell = stack[stack.length - 1];
-      const reprHash = cell.hash(3).toString("hex");
-      if (this.hashToCell.has(reprHash)) {
-        stack.pop();
-      } else {
-        this.hashToCell.set(reprHash, cell);
-        for (const child of cell.refs) {
-          stack.push(child);
-        }
-      }
-    }
-  }
-
-  getCell(hash: string): Cell {
-    const res = this.hashToCell.get(hash);
-    if (res == null) throw new Error("Unknown cell");
-    return res;
-  }
-}
-
 class State {
   private contX?: CodeBlock;
   private contY?: CodeBlock;
@@ -72,22 +41,75 @@ class State {
 
   disasm(block: CodeBlock) {
     while (true) {
+      let opcodeBits = 0;
+      let opcodeRefs = 0;
       for (const opcode of block.opcodes) {
         this.showOp(opcode);
+        opcodeBits += opcode.bits;
+        opcodeRefs += opcode.refs || 0;
       }
 
       if (block.tail == null) {
+        this.dict = undefined;
+        this.flushCont();
         break;
       } else if (block.tail.type === "incomplete") {
-        this.writeln("Cannot disassemble");
+        this.dict = undefined;
+        this.flushCont();
+        this.showIncompleteTail(block, opcodeBits, opcodeRefs);
         break;
       } else {
         block = this.ctx.getCode(block.tail.id);
       }
     }
+  }
 
-    this.dict = undefined;
-    this.flushCont();
+  showIncompleteTail(block: CodeBlock, opcodeBits: number, opcodeRefs: number) {
+    type StackItem = { depth: number; refs: Cell[]; index: number };
+
+    const cell = this.ctx.getCell(block.cellHash);
+    const bits = cell
+      .asSlice()
+      .skip(block.offsetBits + opcodeBits)
+      .loadBits(block.bits - opcodeBits);
+    this.writeln(`Cannot disassemble: x{${bits.toString()}}`);
+
+    const stack: StackItem[] = [];
+    if (opcodeRefs < block.refs) {
+      stack.push({
+        depth: 1,
+        refs: cell.refs.slice(
+          block.offsetRefs + opcodeRefs,
+          block.offsetRefs + block.refs
+        ),
+        index: block.offsetRefs + opcodeRefs,
+      });
+    }
+
+    const prevDepth = this.depth;
+    this.depth = 0;
+
+    outer: while (stack.length > 0) {
+      const item = stack[stack.length - 1];
+      while (item.index < item.refs.length) {
+        const child = item.refs[item.index++];
+
+        const indent = " ".repeat(item.depth);
+        this.writeln(`${indent}x{${child.bits.toString()}}`);
+
+        if (child.refs.length > 0) {
+          stack.push({
+            depth: item.depth + 1,
+            refs: child.refs,
+            index: 0,
+          });
+          continue outer;
+        }
+      }
+      stack.pop();
+    }
+
+    this.depth = prevDepth;
   }
 
   showOp(opcode: Opcode) {
@@ -462,19 +484,19 @@ class Context {
             break;
           }
           case "library": {
-            cellHash = item.hash;
+            cellHash = item.cellHash;
             break;
           }
-          case "dataBlock": {
+          case "data": {
             if (item.data.type !== "cell") throw new Error("Unexpected slice");
-            cellHash = Cell.fromBase64(item.data.boc).hash(3).toString("hex");
+            cellHash = item.data.cellHash;
             break;
           }
           case "jumpTable": {
             throw new Error("Unexpected jump table");
           }
         }
-        return `(${cellHash})`;
+        return `(${cellHash.toUpperCase()})`;
       }
       case "slice": {
         const item = this.items[arg.id];
@@ -488,11 +510,12 @@ class Context {
             refCount = item.refs;
             break;
           }
-          case "dataBlock": {
+          case "data": {
             if (item.data.type !== "slice") throw new Error("Unexpected cell");
-            const slice = Cell.fromBase64(item.data.boc).asSlice();
-            bits = slice.loadBits(item.data.bits);
-            refCount = item.data.refs;
+            const { data } = item;
+            const cell = this.getCell(data.cellHash);
+            bits = cell.asSlice().skip(data.offsetBits).loadBits(data.bits);
+            refCount = data.refs;
             break;
           }
           case "jumpTable": {
@@ -507,7 +530,7 @@ class Context {
         if (refCount > 0) {
           return `(${bits.toString()},${refCount})`;
         } else {
-          return bits.toString();
+          return `x{${bits.toString()}}`;
         }
       }
     }

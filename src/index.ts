@@ -16,6 +16,7 @@ export {
   CodeBlock,
   CodeBlockTail,
   CodeBlockTailType,
+  CodeCells,
   Data,
   DataBlock,
   DataCell,
