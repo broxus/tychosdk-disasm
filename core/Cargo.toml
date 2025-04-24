@@ -32,4 +32,4 @@ everscale-types = { version = "0.1.2", default-features = false, features = [
     "serde",
     "base64",
 ] }
-tycho-disasm = { git = "https://github.com/broxus/tycho-vm.git", rev = "616397f3ad4a2eab4a826a1d4383665cfd6e2f6d" }
+tycho-disasm = { git = "https://github.com/broxus/tycho-vm.git", rev = "c14396b3b479d8cf394f99449aa52b8b4caa1d06" }
