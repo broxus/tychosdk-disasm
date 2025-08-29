@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use everscale_types::boc::Boc;
+use tycho_types::boc::Boc;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen(typescript_custom_section)]
