@@ -1,6 +1,6 @@
 {
   "name": "@tychosdk/disasm",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Tycho TVM disasm",
   "main": "dist/index.js",
   "browser": {
@@ -26,7 +26,8 @@
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "@ton/crypto": ">=3.2.0"
+    "@ton/core": ">=0.61.0",
+    "@ton/crypto": ">=3.3.0"
   },
   "scripts": {
     "wasm:build": "./scripts/build-wasm.sh",
