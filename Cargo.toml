@@ -3,4 +3,4 @@ resolver = "2"
 members = ["core"]
 
 [patch.crates-io]
-tycho-vm = { git = "https://github.com/broxus/tycho-vm.git", rev = "c682471c4582506c26bdeca1fd22318e42d62818" }
+tycho-vm = { git = "https://github.com/broxus/tycho-vm.git", rev = "01b5300b4c112d10b31aa29679c323ac6dc64723" }
